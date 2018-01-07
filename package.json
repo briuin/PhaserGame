@@ -11,7 +11,7 @@
   },
   "author": "Briuin",
   "dependencies": {
-    "ecstatic": "^1.0.1",
+    "ecstatic": "^3.1.1",
     "socket.io": "^2.0.4",
     "phaser": "^2.6.2",
     "phaser-ce": "^2.9.4",
