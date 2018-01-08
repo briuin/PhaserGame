@@ -9,7 +9,10 @@ module.exports = {
     },
     module: {
         rules: [
-            
+            {
+                test: /(\.md|\.map)$/,
+                loader: 'null-loader'
+            }, 
             {
                 test: /\.js$/,
                 exclude: /node_modules/,

@@ -2,14 +2,15 @@
 import 'pixi';
 import 'p2';
 import * as Phaser from "phaser";
-
  
 class VirtualJoystickDeclarator extends Phaser{
     static VirtualJoystick:any
 }
 
-
 import {RemotePlayer} from "./RemotePlayer";
+
+const SOCKETIO_URL = "http://localhost:8080";
+const SOCKETIO_FILE_PATH = SOCKETIO_URL + "/socket.io/socket.io.js";
 
 class FunnyGame {
     
@@ -35,8 +36,9 @@ class FunnyGame {
         });
     }
 
-    preload() {
+    preload() { 
         this.game.load.script('joystick', 'js/vendor/phaser-virtual-joystick.min.js');
+        this.game.load.script('io', SOCKETIO_FILE_PATH);
         this.game.load.image('earth', 'assets/light_sand.png');
         this.game.load.spritesheet('dude', 'assets/dude.png', 64, 64);
         this.game.load.spritesheet('enemy', 'assets/dude.png', 64, 64);
@@ -46,8 +48,8 @@ class FunnyGame {
    
 
     create() {
-        this.socket = io.connect();
-
+        this.socket = io.connect(SOCKETIO_URL);
+ 
         // Resize our game world to be a 2000 x 2000 square
         this.game.world.setBounds(-500, -500, 1000, 1000);
 

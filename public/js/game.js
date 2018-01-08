@@ -22,6 +22,8 @@ var VirtualJoystickDeclarator = /** @class */ (function (_super) {
     return VirtualJoystickDeclarator;
 }(Phaser));
 var RemotePlayer_1 = require("./RemotePlayer");
+var SOCKETIO_URL = "http://localhost:8080";
+var SOCKETIO_FILE_PATH = SOCKETIO_URL + "/socket.io/socket.io.js";
 var FunnyGame = /** @class */ (function () {
     function FunnyGame() {
         this.currentSpeed = 0;
@@ -34,13 +36,14 @@ var FunnyGame = /** @class */ (function () {
     }
     FunnyGame.prototype.preload = function () {
         this.game.load.script('joystick', 'js/vendor/phaser-virtual-joystick.min.js');
+        this.game.load.script('io', SOCKETIO_FILE_PATH);
         this.game.load.image('earth', 'assets/light_sand.png');
         this.game.load.spritesheet('dude', 'assets/dude.png', 64, 64);
         this.game.load.spritesheet('enemy', 'assets/dude.png', 64, 64);
         this.game.load.atlas('generic', 'assets/virtualjoystick/skins/generic-joystick.png', 'assets/virtualjoystick/skins/generic-joystick.json');
     };
     FunnyGame.prototype.create = function () {
-        this.socket = io.connect();
+        this.socket = io.connect(SOCKETIO_URL);
         // Resize our game world to be a 2000 x 2000 square
         this.game.world.setBounds(-500, -500, 1000, 1000);
         // Our tiled scrolling background
