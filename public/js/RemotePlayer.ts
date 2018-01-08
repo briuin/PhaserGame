@@ -14,7 +14,7 @@ export class RemotePlayer{
         const rotation = startAngle;
 
         this.game = game;
-    this.health = 3;
+    this.health = 10;
     this.player = player;
     this.alive = true; 
 
@@ -46,6 +46,23 @@ export class RemotePlayer{
         this.lastPosition.x = this.player.x;
         this.lastPosition.y = this.player.y;
         this.lastPosition.rotation = this.player.rotation;
+    }
+
+    damage(){
+
+        this.health -= 1;
+
+        if (this.health <= 0)
+        {
+            this.alive = false;
+
+            this.player.kill();
+
+            return true;
+        }
+
+        return false;
+
     }
 }
 
