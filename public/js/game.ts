@@ -139,6 +139,7 @@ class FunnyGame {
 
         this.game.physics.enable(this.castle, Phaser.Physics.ARCADE);
         this.castle.body.maxVelocity.setTo(0, 0);
+        this.castle.body.immovable = true;
         this.castle.body.collideWorldBounds = true;
         this.castle.body.setSize(240, 235, 5, 0);
         this.castle.bringToTop();
@@ -370,6 +371,7 @@ class FunnyGame {
             this.weapon.fire();
         }
 
+        this.game.physics.arcade.collide(this.castle, this.player);
         for (let i = 0; i < this.monsters.length; i++) {
             this.game.physics.arcade.collide(this.castle, this.monsters[i]);
             if (this.game.physics.arcade.distanceBetween(this.monsters[i], this.castle)> 70){
