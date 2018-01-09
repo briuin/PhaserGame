@@ -29,6 +29,11 @@ class FunnyGame {
     currentSpeed = 0;
     cursors;
     weapon;
+    
+    monsters = [];
+    castle;
+    
+    cardBtns = [];
 
     enemyBullets;
     enemiesTotal = 0;
@@ -59,8 +64,11 @@ class FunnyGame {
         this.game.load.script('joystick', 'js/vendor/phaser-virtual-joystick.min.js');
         this.game.load.script('io', './socket.io.js');
         this.game.load.image('earth', 'assets/light_sand.png');
+        this.game.load.image('castle', 'assets/castle.png');
+        this.game.load.image('monsterbtn', 'assets/monsterbtn.png');
         this.game.load.spritesheet('dude', 'assets/dude.png', 64, 64);
         this.game.load.spritesheet('enemy', 'assets/dude.png', 64, 64);
+        this.game.load.spritesheet('monster', 'assets/monster.png', 64, 64);
         this.game.load.atlas('generic', 'assets/virtualjoystick/skins/generic-joystick.png', 'assets/virtualjoystick/skins/generic-joystick.json');
 
 
@@ -93,7 +101,7 @@ class FunnyGame {
         this.socket = io.connect(SOCKETIO_URL,{transports: ['websocket', 'polling', 'flashsocket']});
  
         // Resize our game world to be a 2000 x 2000 square
-        this.game.world.setBounds(-500, -500, 1000, 1000);
+        //this.game.world.setBounds(0, 0, DEFAULT_GAME_WIDTH, DEFAULT_GAME_HEIGHT);
 
         // Our tiled scrolling background
         this.land = this.game.add.tileSprite(0, 0, DEFAULT_GAME_WIDTH, DEFAULT_GAME_HEIGHT, 'earth');
@@ -103,12 +111,13 @@ class FunnyGame {
 
 
         // The base of our player
-        const startX = Math.round(Math.random() * (1000) - 500);
-        const startY = Math.round(Math.random() * (1000) - 500);
+        const startX = DEFAULT_GAME_WIDTH/2;//Math.round(Math.random() * (1000) - 500);
+        const startY = DEFAULT_GAME_HEIGHT - 150;//Math.round(Math.random() * (1000) - 500);
         this.player = this.game.add.sprite(startX, startY, 'dude');
         this.player.anchor.setTo(0.5, 0.5);
         this.player.animations.add('move', [0, 1, 2, 3, 4, 5, 6, 7], 20, true);
         this.player.animations.add('stop', [3], 20, true);
+        this.player.rotation = -90 * (Math.PI/180);
 
         // This will force it to decelerate and limit its speed
         // player.body.drag.setTo(200, 200)
@@ -121,11 +130,31 @@ class FunnyGame {
 
         this.player.bringToTop();
 
+        this.createMonster();
+
+        this.castle= this.game.add.sprite(DEFAULT_GAME_WIDTH/2, 30, 'castle');
+        this.castle.anchor.setTo(0.5,0.5);
+        this.castle.scale.setTo(0.4,0.4);
+        
+
+        this.game.physics.enable(this.castle, Phaser.Physics.ARCADE);
+        this.castle.body.maxVelocity.setTo(0, 0);
+        this.castle.body.collideWorldBounds = true;
+        this.castle.body.setSize(240, 235, 5, 0);
+        this.castle.bringToTop();
+        
         this.game.camera.follow(this.player);
         this.game.camera.deadzone = new Phaser.Rectangle(150, 150, DEFAULT_GAME_WIDTH -300, DEFAULT_GAME_HEIGHT-300);
         this.game.camera.focusOnXY(0, 0);
 
         this.cursors = this.game.input.keyboard.createCursorKeys();
+    
+        for (let i =0; i<5; i++){
+            let button = this.game.add.button(i*70, DEFAULT_GAME_HEIGHT - 215, 'monsterbtn', this.createMonster.bind(this), this);
+            button.scale.setTo(0.35,0.35);
+            this.cardBtns.push(button);
+        }
+       
 
         this.weapon = this.game.add.weapon(4, 'bullet');
 
@@ -171,6 +200,23 @@ class FunnyGame {
         this.setEventHandlers();
     }
 
+    createMonster(){
+        
+        const startX = Math.random() * (DEFAULT_GAME_WIDTH -40) ;
+        let monster = this.game.add.sprite(startX, DEFAULT_GAME_HEIGHT - 330 , 'monster');
+        monster.anchor.setTo(0.5,0.5);
+        monster.animations.add("slash",[156,157,158,159,160,161],15,true);
+        monster.animations.add("move",[104,105,106,107,108,109,110,111,112],15,true);
+
+        this.game.physics.enable(monster, Phaser.Physics.ARCADE);
+        monster.body.maxVelocity.setTo(400, 400);
+        monster.body.collideWorldBounds = true;
+        monster.body.setSize(35, 45, 15, 18);
+        monster.bringToTop();
+        
+        this.monsters.push(monster);
+    }    
+    
     setEventHandlers(){
         // Socket connection successful
         this.socket.on('connect', this.onSocketConnected.bind(this));
@@ -261,8 +307,7 @@ class FunnyGame {
 
     bulletHitEnemy(enermy, bullet) {
         bullet.kill();
-
-        console.log("enermy",enermy);
+        
         const destroyed = this.playerById(enermy.name).damage();
 
         if (destroyed)
@@ -271,6 +316,14 @@ class FunnyGame {
             explosionAnimation.reset(enermy.x, enermy.y);
             explosionAnimation.play('kaboom', 30, false, true);
         }
+    }
+
+    bulletHitCastle(enermy, bullet) {
+        bullet.kill();
+        const explosionAnimation = this.explosions.getFirstExists(false);
+        explosionAnimation.reset(enermy.x, enermy.y);
+        explosionAnimation.play('kaboom', 30, false, true);
+        
     }
 
     update() {
@@ -283,6 +336,8 @@ class FunnyGame {
                 this.game.physics.arcade.overlap(this.weapon.bullets, this.enemies[i].player, this.bulletHitEnemy.bind(this), null, this);
             }
         }
+
+        this.game.physics.arcade.overlap(this.weapon.bullets,this.castle, this.bulletHitCastle.bind(this), null, this);
 
         const maxSpeed = 400;
 
@@ -315,10 +370,31 @@ class FunnyGame {
             this.weapon.fire();
         }
 
+        for (let i = 0; i < this.monsters.length; i++) {
+            this.game.physics.arcade.collide(this.castle, this.monsters[i]);
+            if (this.game.physics.arcade.distanceBetween(this.monsters[i], this.castle)> 70){
+                let radians = this.game.physics.arcade.angleBetween(this.monsters[i], this.castle);
+                this.game.physics.arcade.velocityFromRotation(radians, 60, this.monsters[i].body.velocity);
+                //this.monsters[i].angle = radians ;//+ (90 * Math.PI/180);
+                //this.monsters[i].body.rotation = radians + (90 * Math.PI/180);
+                this.monsters[i].animations.play("move");
+            }
+            else{
+                this.monsters[i].animations.play("slash");
+                this.monsters[i].body.velocity.set(0);
+            }
+        }
+       
+
         this.socket.emit('move player', {x: this.player.x, y: this.player.y, angle: this.player.rotation})
     }
 
     render() {
+       /* this.game.debug.body(this.castle);
+        for (let i = 0; i < this.monsters.length; i++) {
+            this.game.debug.body(this.monsters[i]);
+        }
+        */
     }
 
     playerById(id) {
