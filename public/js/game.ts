@@ -57,6 +57,7 @@ class FunnyGame {
         });
         
         this.game.load.script('joystick', 'js/vendor/phaser-virtual-joystick.min.js');
+        this.game.load.script('io', './socket.io.js');
         this.game.load.image('earth', 'assets/light_sand.png');
         this.game.load.spritesheet('dude', 'assets/dude.png', 64, 64);
         this.game.load.spritesheet('enemy', 'assets/dude.png', 64, 64);
