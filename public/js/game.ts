@@ -4,7 +4,7 @@ import 'p2';
 import * as Phaser from "phaser";
  
 class VirtualJoystickDeclarator extends Phaser{
-    static VirtualJoystick:any
+    static VirtualJoystick:any;
 }
 
 import {RemotePlayer} from "./RemotePlayer";
@@ -32,6 +32,7 @@ class FunnyGame {
     
     monsters = [];
     castle;
+    castleHealthMeter;
     
     cardBtns = [];
 
@@ -63,6 +64,7 @@ class FunnyGame {
         
         this.game.load.script('joystick', 'js/vendor/phaser-virtual-joystick.min.js');
         this.game.load.script('io', './socket.io.js');
+        this.game.load.script('healthMeter', 'js/vendor/healthMeter.js');
         this.game.load.image('earth', 'assets/light_sand.png');
         this.game.load.image('castle', 'assets/castle.png');
         this.game.load.image('monsterbtn', 'assets/monsterbtn.png');
@@ -98,8 +100,7 @@ class FunnyGame {
     }
 
     create() {
-        this.socket = io.connect(SOCKETIO_URL,{transports: ['websocket', 'polling', 'flashsocket']});
- 
+        
         // Resize our game world to be a 2000 x 2000 square
         //this.game.world.setBounds(0, 0, DEFAULT_GAME_WIDTH, DEFAULT_GAME_HEIGHT);
 
@@ -142,6 +143,8 @@ class FunnyGame {
         this.castle.body.immovable = true;
         this.castle.body.collideWorldBounds = true;
         this.castle.body.setSize(240, 235, 5, 0);
+        this.castle.health = 100;
+        this.castle.maxHealth = 100;
         this.castle.bringToTop();
         
         this.game.camera.follow(this.player);
@@ -190,13 +193,17 @@ class FunnyGame {
 
         this.buttonA = this.pad.addButton(500, 520, 'generic', 'button1-up', 'button1-down');
         this.buttonA.alignBottomRight(20);
-
-        //this.buttonB = this.pad.addButton(615, 450, 'generic', 'button2-up', 'button2-down');
-        //this.buttonB.onDown.add(this.pressButtonB, this);
-
-        //this.buttonC = this.pad.addButton(730, 520, 'generic', 'button3-up', 'button3-down');
-        //this.buttonC.onDown.add(this.pressButtonC, this);
         
+
+
+        this.castleHealthMeter = this.game.plugins.add(Phaser.Plugin.HealthMeter);
+        this.castleHealthMeter.bar(
+            this.castle,
+            {x: this.castle.x - this.castle.width/2  , y: this.castle.y, width: this.castle.width, height: 14}
+        );
+        console.log(this.castleHealthMeter);
+
+        this.socket = io.connect(SOCKETIO_URL,{transports: ['websocket', 'polling', 'flashsocket']});
         // Start listening for events
         this.setEventHandlers();
     }
@@ -225,6 +232,8 @@ class FunnyGame {
         // Socket disconnection
         this.socket.on('disconnect', this.onSocketDisconnect.bind(this));
 
+        this.socket.on('initial data', this.onInitialData.bind(this));
+        
         // New player message received
         this.socket.on('new player', this.onNewPlayer.bind(this));
 
@@ -233,6 +242,18 @@ class FunnyGame {
 
         // Player removed message received
         this.socket.on('remove player', this.onRemovePlayer.bind(this));
+        
+        this.socket.on('update castle', this.onUpdateCastle.bind(this));
+    }
+
+    onInitialData(data){
+        this.castle.health = data.health;
+        this.castle.maxHealth = data.maxHealth;
+    }
+    
+    onUpdateCastle(data){
+        console.log(data);
+        this.castle.health = data.health;
     }
 
 // Socket connected
@@ -321,6 +342,7 @@ class FunnyGame {
 
     bulletHitCastle(enermy, bullet) {
         bullet.kill();
+        this.attackCastle(10);
         const explosionAnimation = this.explosions.getFirstExists(false);
         explosionAnimation.reset(enermy.x, enermy.y);
         explosionAnimation.play('kaboom', 30, false, true);
@@ -350,6 +372,14 @@ class FunnyGame {
             this.player.body.velocity.set(0);
             this.currentSpeed = 0;
         }
+        
+        if (this.castle.health > 0){
+            
+        }
+        else{
+            this.castle.kill();
+            this.castleHealthMeter.visible=false;
+        }
 
 
         if (this.currentSpeed > 0) {
@@ -377,12 +407,19 @@ class FunnyGame {
             if (this.game.physics.arcade.distanceBetween(this.monsters[i], this.castle)> 70){
                 let radians = this.game.physics.arcade.angleBetween(this.monsters[i], this.castle);
                 this.game.physics.arcade.velocityFromRotation(radians, 60, this.monsters[i].body.velocity);
-                //this.monsters[i].angle = radians ;//+ (90 * Math.PI/180);
-                //this.monsters[i].body.rotation = radians + (90 * Math.PI/180);
                 this.monsters[i].animations.play("move");
             }
             else{
-                this.monsters[i].animations.play("slash");
+                if (this.castle.alive){
+                    if (this.monsters[i].animations.currentAnim.name != "slash") {
+                        this.monsters[i].animations.play("slash");
+                        this.monsters[i].animations.currentAnim.onLoop.add((sprite, animation) => {
+                            this.attackCastle();
+                        }, this);
+                    }
+                }else{
+                    this.monsters[i].animations.stop(null, true);
+                }
                 this.monsters[i].body.velocity.set(0);
             }
         }
@@ -391,12 +428,17 @@ class FunnyGame {
         this.socket.emit('move player', {x: this.player.x, y: this.player.y, angle: this.player.rotation})
     }
 
+    
+    attackCastle(damage:number = 1){
+        this.socket.emit('attack castle', {damage: damage});
+    }
+
     render() {
-       /* this.game.debug.body(this.castle);
+        /*this.game.debug.body(this.castle);
         for (let i = 0; i < this.monsters.length; i++) {
             this.game.debug.body(this.monsters[i]);
-        }
-        */
+        }*/
+        
     }
 
     playerById(id) {
