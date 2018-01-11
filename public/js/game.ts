@@ -23,18 +23,20 @@ class FunnyGame {
     enemies;
     pad;
     buttonA;
-    buttonB;
-    buttonC;
     stick;
     currentSpeed = 0;
     cursors;
     weapon;
+    castlePlayer;
+    castlePlayerHealthMeter;
     
     monsters = [];
+    enermyMonsters = [];
     castle;
     castleHealthMeter;
     
     cardBtns = [];
+    enermyCardBtns = [];
 
     enemyBullets;
     enemiesTotal = 0;
@@ -113,7 +115,7 @@ class FunnyGame {
 
         // The base of our player
         const startX = DEFAULT_GAME_WIDTH/2;//Math.round(Math.random() * (1000) - 500);
-        const startY = DEFAULT_GAME_HEIGHT - 150;//Math.round(Math.random() * (1000) - 500);
+        const startY = DEFAULT_GAME_HEIGHT - 250;//Math.round(Math.random() * (1000) - 500);
         this.player = this.game.add.sprite(startX, startY, 'dude');
         this.player.anchor.setTo(0.5, 0.5);
         this.player.animations.add('move', [0, 1, 2, 3, 4, 5, 6, 7], 20, true);
@@ -131,13 +133,11 @@ class FunnyGame {
 
         this.player.bringToTop();
 
-        this.createMonster();
+        this.createPlayerMonster();
 
-        this.castle= this.game.add.sprite(DEFAULT_GAME_WIDTH/2, 30, 'castle');
+        this.castle= this.game.add.sprite(DEFAULT_GAME_WIDTH/2, 120, 'castle');
         this.castle.anchor.setTo(0.5,0.5);
-        this.castle.scale.setTo(0.4,0.4);
-        
-
+        this.castle.scale.setTo(0.3,0.3);
         this.game.physics.enable(this.castle, Phaser.Physics.ARCADE);
         this.castle.body.maxVelocity.setTo(0, 0);
         this.castle.body.immovable = true;
@@ -146,6 +146,19 @@ class FunnyGame {
         this.castle.health = 100;
         this.castle.maxHealth = 100;
         this.castle.bringToTop();
+
+        this.castlePlayer= this.game.add.sprite(DEFAULT_GAME_WIDTH/2, DEFAULT_GAME_HEIGHT - 120, 'castle');
+        this.castlePlayer.anchor.setTo(0.5,0.5);
+        this.castlePlayer.scale.setTo(0.3,0.3);
+        this.game.physics.enable(this.castlePlayer, Phaser.Physics.ARCADE);
+        this.castlePlayer.body.maxVelocity.setTo(0, 0);
+        this.castlePlayer.body.immovable = true;
+        this.castlePlayer.body.collideWorldBounds = true;
+        this.castlePlayer.body.setSize(240, 235, 5, 0);
+        this.castlePlayer.health = 100;
+        this.castlePlayer.maxHealth = 100;
+        this.castlePlayer.rotation = 180 * Math.PI/180;
+        this.castlePlayer.bringToTop();
         
         this.game.camera.follow(this.player);
         this.game.camera.deadzone = new Phaser.Rectangle(150, 150, DEFAULT_GAME_WIDTH -300, DEFAULT_GAME_HEIGHT-300);
@@ -154,9 +167,17 @@ class FunnyGame {
         this.cursors = this.game.input.keyboard.createCursorKeys();
     
         for (let i =0; i<5; i++){
-            let button = this.game.add.button(i*70, DEFAULT_GAME_HEIGHT - 215, 'monsterbtn', this.createMonster.bind(this), this);
+            let button = this.game.add.button(i*70, DEFAULT_GAME_HEIGHT - 70 , 'monsterbtn', this.createPlayerMonster.bind(this), this);
             button.scale.setTo(0.35,0.35);
             this.cardBtns.push(button);
+        }
+
+        for (let i =0; i<5; i++){
+            let button = this.game.add.button(i*70 + 40, 35, 'monsterbtn', this.createEnermyMonster.bind(this), this);
+            button.anchor.setTo(0.5,0.5);
+            button.scale.setTo(0.35,0.35);
+            button.rotation = 180 * Math.PI/180;
+            this.enermyCardBtns.push(button);
         }
        
 
@@ -187,34 +208,41 @@ class FunnyGame {
         // joystic
         this.pad = this.game.plugins.add(VirtualJoystickDeclarator.VirtualJoystick);
 
-        this.stick = this.pad.addStick(0, 0, 200, 'generic');
+        this.stick = this.pad.addStick(60, DEFAULT_GAME_HEIGHT - 130, 200, 'generic');
         this.stick.scale = 0.5;
-        this.stick.alignBottomLeft(20);
+        //this.stick.alignBottomLeft(20);
 
-        this.buttonA = this.pad.addButton(500, 520, 'generic', 'button1-up', 'button1-down');
-        this.buttonA.alignBottomRight(20);
+        this.buttonA = this.pad.addButton(DEFAULT_GAME_WIDTH - 60, DEFAULT_GAME_HEIGHT - 130, 'generic', 'button1-up', 'button1-down');
+        //this.buttonA.alignBottomRight(20);
         
 
 
         this.castleHealthMeter = this.game.plugins.add(Phaser.Plugin.HealthMeter);
         this.castleHealthMeter.bar(
             this.castle,
-            {x: this.castle.x - this.castle.width/2  , y: this.castle.y, width: this.castle.width, height: 14}
+            {x: this.castle.x - this.castle.width/2  , y: this.castle.y - this.castle.height /2 -10,  width: this.castle.width, height: 14}
         );
-        console.log(this.castleHealthMeter);
+
+        this.castlePlayerHealthMeter = this.game.plugins.add(Phaser.Plugin.HealthMeter);
+        this.castlePlayerHealthMeter.bar(
+            this.castlePlayer,
+            {x: this.castlePlayer.x - this.castlePlayer.width/2  , y: this.castlePlayer.y + this.castlePlayer.height /2 +10,  width: this.castlePlayer.width, height: 14}
+        );
 
         this.socket = io.connect(SOCKETIO_URL,{transports: ['websocket', 'polling', 'flashsocket']});
         // Start listening for events
         this.setEventHandlers();
     }
-
-    createMonster(){
-        
-        const startX = Math.random() * (DEFAULT_GAME_WIDTH -40) ;
-        let monster = this.game.add.sprite(startX, DEFAULT_GAME_HEIGHT - 330 , 'monster');
+    
+    createMonster(x:number = Math.random() * (DEFAULT_GAME_WIDTH -40),y:number = DEFAULT_GAME_HEIGHT - 200, enermy= false){
+        let monster = this.game.add.sprite(x, y , 'monster');
         monster.anchor.setTo(0.5,0.5);
+        monster.scale.setTo(0.7, 0.7);
         monster.animations.add("slash",[156,157,158,159,160,161],15,true);
-        monster.animations.add("move",[104,105,106,107,108,109,110,111,112],15,true);
+        if (!enermy)
+            monster.animations.add("move",[104,105,106,107,108,109,110,111,112],15,true);
+            else
+        monster.animations.add("move",[130,131,132,133,134,135,136,137,138],15,true);
 
         this.game.physics.enable(monster, Phaser.Physics.ARCADE);
         monster.body.maxVelocity.setTo(400, 400);
@@ -222,7 +250,15 @@ class FunnyGame {
         monster.body.setSize(35, 45, 15, 18);
         monster.bringToTop();
         
-        this.monsters.push(monster);
+        return monster;
+    }
+    
+    createEnermyMonster(){
+        this.enermyMonsters.push(this.createMonster(undefined, 200,true));
+    }
+
+    createPlayerMonster(){
+        this.monsters.push(this.createMonster());
     }    
     
     setEventHandlers(){
@@ -249,6 +285,9 @@ class FunnyGame {
     onInitialData(data){
         this.castle.health = data.health;
         this.castle.maxHealth = data.maxHealth;
+        
+        this.castlePlayer.health = 10000;
+        this.castlePlayer.maxHealth = 10000;
     }
     
     onUpdateCastle(data){
@@ -404,7 +443,7 @@ class FunnyGame {
         this.game.physics.arcade.collide(this.castle, this.player);
         for (let i = 0; i < this.monsters.length; i++) {
             this.game.physics.arcade.collide(this.castle, this.monsters[i]);
-            if (this.game.physics.arcade.distanceBetween(this.monsters[i], this.castle)> 70){
+            if (this.game.physics.arcade.distanceBetween(this.monsters[i], this.castle)> this.castle.height*0.7){
                 let radians = this.game.physics.arcade.angleBetween(this.monsters[i], this.castle);
                 this.game.physics.arcade.velocityFromRotation(radians, 60, this.monsters[i].body.velocity);
                 this.monsters[i].animations.play("move");
@@ -423,6 +462,29 @@ class FunnyGame {
                 this.monsters[i].body.velocity.set(0);
             }
         }
+
+        this.game.physics.arcade.collide(this.castlePlayer, this.player);
+        for (let i = 0; i < this.enermyMonsters.length; i++) {
+            this.game.physics.arcade.collide(this.castlePlayer, this.enermyMonsters[i]);
+            if (this.game.physics.arcade.distanceBetween(this.enermyMonsters[i], this.castlePlayer)> this.castlePlayer.height){
+                let radians = this.game.physics.arcade.angleBetween(this.enermyMonsters[i], this.castlePlayer);
+                this.game.physics.arcade.velocityFromRotation(radians, 60, this.enermyMonsters[i].body.velocity);
+                this.enermyMonsters[i].animations.play("move");
+            }
+            else{
+                if (this.castlePlayer.alive){
+                    if (this.enermyMonsters[i].animations.currentAnim.name != "slash") {
+                        this.enermyMonsters[i].animations.play("slash");
+                        this.enermyMonsters[i].animations.currentAnim.onLoop.add((sprite, animation) => {
+                            this.attackCastlePlayer();
+                        }, this);
+                    }
+                }else{
+                    this.enermyMonsters[i].animations.stop(null, true);
+                }
+                this.enermyMonsters[i].body.velocity.set(0);
+            }
+        }
        
 
         this.socket.emit('move player', {x: this.player.x, y: this.player.y, angle: this.player.rotation})
@@ -431,6 +493,10 @@ class FunnyGame {
     
     attackCastle(damage:number = 1){
         this.socket.emit('attack castle', {damage: damage});
+    }
+    
+    attackCastlePlayer(damage:number = 1){
+        this.castlePlayer.health -=1;
     }
 
     render() {
