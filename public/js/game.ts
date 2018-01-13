@@ -226,7 +226,7 @@ class FunnyGame {
         this.castlePlayerHealthMeter = this.game.plugins.add(Phaser.Plugin.HealthMeter);
         this.castlePlayerHealthMeter.bar(
             this.castlePlayer,
-            {x: this.castlePlayer.x - this.castlePlayer.width/2  , y: this.castlePlayer.y + this.castlePlayer.height /2 +10,  width: this.castlePlayer.width, height: 14}
+            {x: this.castlePlayer.x - this.castlePlayer.width/2  , y: this.castlePlayer.y + this.castlePlayer.height /2 ,  width: this.castlePlayer.width, height: 14}
         );
 
         this.socket = io.connect(SOCKETIO_URL,{transports: ['websocket', 'polling', 'flashsocket']});
@@ -238,11 +238,15 @@ class FunnyGame {
         let monster = this.game.add.sprite(x, y , 'monster');
         monster.anchor.setTo(0.5,0.5);
         monster.scale.setTo(0.7, 0.7);
-        monster.animations.add("slash",[156,157,158,159,160,161],15,true);
-        if (!enermy)
+        
+        if (!enermy){
+            monster.animations.add("slash",[156,157,158,159,160,161],15,true);
             monster.animations.add("move",[104,105,106,107,108,109,110,111,112],15,true);
-            else
-        monster.animations.add("move",[130,131,132,133,134,135,136,137,138],15,true);
+        }
+        else {
+            monster.animations.add("slash",[182,183,184,185,186,187],15,true);
+            monster.animations.add("move", [130, 131, 132, 133, 134, 135, 136, 137, 138], 15, true);
+        }
 
         this.game.physics.enable(monster, Phaser.Physics.ARCADE);
         monster.body.maxVelocity.setTo(400, 400);
