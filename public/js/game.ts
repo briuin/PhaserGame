@@ -500,7 +500,10 @@ class FunnyGame {
     }
     
     attackCastlePlayer(damage:number = 1){
-        this.castlePlayer.health -=1;
+        this.castlePlayer.health -= damage;
+        if (this.castlePlayer.health <=0){
+            this.castlePlayer.kill();
+        }
     }
 
     render() {
