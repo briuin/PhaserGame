@@ -70,9 +70,11 @@ class FunnyGame {
         this.game.load.image('earth', 'assets/light_sand.png');
         this.game.load.image('castle', 'assets/castle.png');
         this.game.load.image('monsterbtn', 'assets/monsterbtn.png');
+        this.game.load.image('monster2btn', 'assets/monster2btn.png');
         this.game.load.spritesheet('dude', 'assets/dude.png', 64, 64);
         this.game.load.spritesheet('enemy', 'assets/dude.png', 64, 64);
         this.game.load.spritesheet('monster', 'assets/monster.png', 64, 64);
+        this.game.load.spritesheet('monster2', 'assets/monster2.png', 64, 64);
         this.game.load.atlas('generic', 'assets/virtualjoystick/skins/generic-joystick.png', 'assets/virtualjoystick/skins/generic-joystick.json');
 
 
@@ -167,13 +169,15 @@ class FunnyGame {
         this.cursors = this.game.input.keyboard.createCursorKeys();
     
         for (let i =0; i<5; i++){
-            let button = this.game.add.button(i*70, DEFAULT_GAME_HEIGHT - 70 , 'monsterbtn', this.createPlayerMonster.bind(this), this);
+            const key = Math.floor(Math.random() * 2) === 0 ? "monsterbtn" : "monsterbtn";
+            let button = this.game.add.button(i*70, DEFAULT_GAME_HEIGHT - 70 , key, this.createPlayerMonster.bind(this), this);
             button.scale.setTo(0.35,0.35);
             this.cardBtns.push(button);
         }
 
         for (let i =0; i<5; i++){
-            let button = this.game.add.button(i*70 + 40, 35, 'monsterbtn', this.createEnermyMonster.bind(this), this);
+            const key = Math.floor(Math.random() * 2) === 0 ? "monsterbtn" : "monsterbtn";
+            let button = this.game.add.button(i*70 + 40, 35, key, this.createEnermyMonster.bind(this), this);
             button.anchor.setTo(0.5,0.5);
             button.scale.setTo(0.35,0.35);
             button.rotation = 180 * Math.PI/180;
@@ -235,7 +239,9 @@ class FunnyGame {
     }
     
     createMonster(x:number = Math.random() * (DEFAULT_GAME_WIDTH -40),y:number = DEFAULT_GAME_HEIGHT - 200, enermy= false){
-        let monster = this.game.add.sprite(x, y , 'monster');
+        
+        const key = Math.floor(Math.random() * 2) === 0 ? "monster" : "monster2"; 
+        let monster = this.game.add.sprite(x, y , key);
         monster.anchor.setTo(0.5,0.5);
         monster.scale.setTo(0.7, 0.7);
         
